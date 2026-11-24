@@ -1,13 +1,18 @@
 #pragma once
 
-#define DASHBOARD_DELAY 5000
-#define BRIGHTNESS_STEP 16
+#define SLEEP_DELAY 10000
 #define TO_DO_OFFSET 15
 
-// Your WiFi SSID and password
-const char* ssid = "com_net";
-const char* password = "asdfghjkl";
+// Pins
+#define I2C_SDA D4 
+#define I2C_SCL D5
 
-// GMT offset
-const long gmtOffset_sec = 5 * 3600;
-const int daylightOffset_sec = 0;
+#define ENC_DATA D1
+#define ENC_CLOCK D2
+#define ENC_SWITCH D3
+
+#define BUTTON_PIN_BITMASK 0x200000000 // 2^33 in hex
+
+// Your WiFi SSID and password
+const char* ssid = "ssid";
+const char* password = "password";
