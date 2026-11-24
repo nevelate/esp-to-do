@@ -61,6 +61,7 @@ void loop() {
   }
   if (encoder.hold()) {
     changeServerState();
+    isWiFiEnabled = !isWiFiEnabled;
   }
   if (millis() - lastUpdate > SLEEP_DELAY && !isWiFiEnabled) {
     u8g2.setPowerSave(1);
@@ -242,7 +243,6 @@ void changeServerState() {
       delay(500);
     }    
     u8g2.drawXBMP(55, 7, 19, 16, image_wifi_bits);    
-    u8g2.setFont(u8g2_font_haxrcorp4089_tr);
     u8g2.drawStr(42, 36, "Wi-Fi is on");
     u8g2.setCursor(37, 51);
     u8g2.print(WiFi.localIP());
@@ -255,7 +255,8 @@ void changeServerState() {
     WiFi.disconnect(true);
     loadTasks();
 
-    
+    u8g2.drawXBMP(55, 7, 19, 16, image_wifi_not_connected_bits);    
+    u8g2.drawStr(42, 36, "Wi-Fi is off");
 
     delay(2000);
   }
