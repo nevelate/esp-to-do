@@ -7,8 +7,8 @@
 #define I2C_SDA D4 
 #define I2C_SCL D5
 
-#define ENC_DATA D1
-#define ENC_CLOCK D2
+#define ENC_A D1
+#define ENC_B D2
 #define ENC_SWITCH D3
 
 #define BUTTON_PIN_BITMASK 0x200000000 // 2^33 in hex

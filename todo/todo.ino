@@ -10,12 +10,13 @@
 #include <U8g2lib.h>
 #include <Wire.h>
 #include <MUIU8g2.h>
-#include <Versatile_RotaryEncoder.h>
 
 #include "bitmaps.h"
 #include "constants.h"
 
 AsyncWebServer server(80);
+#include <EncButton.h>
+EncButton encoder(ENC_A, ENC_B, ENC_SWITCH);
 
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/U8X8_PIN_NONE, /* clock=*/I2C_SCL, /* data=*/I2C_SDA);  // ESP32 Thing, HW I2C with pin remapping
 
@@ -26,7 +27,7 @@ long lastUpdate;
 JsonDocument doc;
 JsonArray tasks;
 
-bool isWiFiConnected = false;
+bool isWiFiEnabled = false;
 
 void setup() {
   if (!LittleFS.begin()) return;
@@ -41,14 +42,30 @@ void setup() {
   lastUpdate = millis();
 
   loadTasks();
+  drawTodos();
 }
 
 void loop() {
-  if (millis() - lastUpdate > SLEEP_DELAY) {
+  encoder.tick();
+  if (encoder.click()) {
+    lastUpdate = millis();
+    tasks[selectedTaskIndex]["completed"] = !tasks[selectedTaskIndex]["completed"];
+    saveTasks();
+    drawTodos();
+  }
+  if (encoder.turn()) {
+    lastUpdate = millis();
+    selectedTaskIndex += encoder.dir();
+    selectedTaskIndex = constrain(selectedTaskIndex, 0, tasks.size() - 1);
+    drawTodos();
+  }
+  if (encoder.hold()) {
+    changeServerState();
+  }
+  if (millis() - lastUpdate > SLEEP_DELAY && !isWiFiEnabled) {
     u8g2.setPowerSave(1);
     esp_deep_sleep_start();
   }
-  drawTodos();
 }
 /*
 void toDoList() {
@@ -118,6 +135,8 @@ void showToDoList() {
 */
 
 void drawTodos() {
+  u8g2.clearBuffer();
+
   u8g2.setFontMode(1);
   u8g2.setBitmapMode(1);
   u8g2.setFont(u8g2_font_haxrcorp4089_tr);
@@ -135,8 +154,6 @@ void drawTodos() {
   }
 
   u8g2.sendBuffer();
-
-  u8g2.sendBuffer();
 }
 
 
@@ -145,10 +162,8 @@ void drawTodoTile(String title, bool isCompleted, int baseY) {
   u8g2.setBitmapMode(1);
   u8g2.setFont(u8g2_font_haxrcorp4089_tr);
 
-  char title_str[title.length() + 1];
-  title.toCharArray(title_str, title.length() + 1);
-
-  u8g2.drawStr(19, baseY + 9, title_str);
+  u8g2.setCursor(19, baseY + 9);
+  u8g2.print(title);
   u8g2.drawLine(16, baseY, 8, baseY);
   u8g2.drawLine(7, baseY + 9, 7, baseY + 1);
   u8g2.drawLine(8, baseY + 10, 16, baseY + 10);
@@ -212,31 +227,25 @@ void loadTasks() {
   file.close();
   tasks = doc.as<JsonArray>();
 }
-/*
+
 void changeServerState() {
+  u8g2.clearBuffer();
+
+  u8g2.setFontMode(1);
+  u8g2.setBitmapMode(1);
+  u8g2.setFont(u8g2_font_haxrcorp4089_tr);
+
   if (WiFi.status() != WL_CONNECTED) {
     WiFi.begin(ssid, password);
 
-    display.clearDisplay();
-
-    display.drawRect(0, 0, 128, 64, 1);
-
-    display.drawBitmap(37, 10, wifi_bits, 52, 31, 1);
-
-    display.display();
-
     while (WiFi.status() != WL_CONNECTED) {
       delay(500);
-    }
-
-    display.setTextColor(1);
-    display.setTextSize(2);
-    display.setTextWrap(false);
-    display.setFont(&Org_01);
-    display.setCursor(getCenterAlignedXPos(WiFi.localIP().toString()), 56);
-    display.print(WiFi.localIP());
-
-    display.display();
+    }    
+    u8g2.drawXBMP(55, 7, 19, 16, image_wifi_bits);    
+    u8g2.setFont(u8g2_font_haxrcorp4089_tr);
+    u8g2.drawStr(42, 36, "Wi-Fi is on");
+    u8g2.setCursor(37, 51);
+    u8g2.print(WiFi.localIP());
 
     configureServer();
     server.begin();
@@ -246,22 +255,10 @@ void changeServerState() {
     WiFi.disconnect(true);
     loadTasks();
 
-    display.clearDisplay();
-
-    display.drawRect(0, 0, 128, 64, 1);
-
-    display.drawBitmap(37, 10, wifi_bits, 52, 31, 1);
-
-    display.setTextColor(1);
-    display.setTextSize(2);
-    display.setTextWrap(false);
-    display.setFont(&Org_01);
-    display.setCursor(getCenterAlignedXPos("Wifi off"), 56);
-    display.print("Wifi off");
-
-    display.display();
+    
 
     delay(2000);
   }
+
+  u8g2.sendBuffer();
 }
-*/
