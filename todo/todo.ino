@@ -47,13 +47,13 @@ void setup() {
 
 void loop() {
   encoder.tick();
-  if (encoder.click()) {
+  if (encoder.click() && !isWiFiEnabled) {
     lastUpdate = millis();
     tasks[selectedTaskIndex]["completed"] = !tasks[selectedTaskIndex]["completed"];
     saveTasks();
     drawTodos();
   }
-  if (encoder.turn()) {
+  if (encoder.turn() && !isWiFiEnabled) {
     lastUpdate = millis();
     selectedTaskIndex += encoder.dir();
     selectedTaskIndex = constrain(selectedTaskIndex, 0, tasks.size() - 1);
@@ -241,25 +241,26 @@ void changeServerState() {
 
     while (WiFi.status() != WL_CONNECTED) {
       delay(500);
-    }    
-    u8g2.drawXBMP(55, 7, 19, 16, image_wifi_bits);    
+    }
+
+    u8g2.drawXBMP(55, 7, 19, 16, image_wifi_bits);
     u8g2.drawStr(42, 36, "Wi-Fi is on");
     u8g2.setCursor(37, 51);
     u8g2.print(WiFi.localIP());
+    u8g2.sendBuffer();
 
     configureServer();
     server.begin();
     delay(3000);
   } else {
+    u8g2.drawXBMP(55, 7, 19, 16, image_wifi_not_connected_bits);
+    u8g2.drawStr(42, 36, "Wi-Fi is off");
+    u8g2.sendBuffer();
+
     server.end();
     WiFi.disconnect(true);
-    loadTasks();
-
-    u8g2.drawXBMP(55, 7, 19, 16, image_wifi_not_connected_bits);    
-    u8g2.drawStr(42, 36, "Wi-Fi is off");
+    loadTasks();    
 
     delay(2000);
   }
-
-  u8g2.sendBuffer();
 }
