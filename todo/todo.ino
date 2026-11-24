@@ -20,7 +20,7 @@ EncButton encoder(ENC_A, ENC_B, ENC_SWITCH);
 
 U8G2_SSD1306_128X64_NONAME_F_HW_I2C u8g2(U8G2_R0, /* reset=*/U8X8_PIN_NONE, /* clock=*/I2C_SCL, /* data=*/I2C_SDA);  // ESP32 Thing, HW I2C with pin remapping
 
-int selectedTaskIndex = 0, lowerBoundTaskIndex = 2;
+int selectedTaskIndex = 0, lowerBoundTaskIndex = 3;
 int lastEncoderCounter;
 long lastUpdate;
 
@@ -56,7 +56,10 @@ void loop() {
   if (encoder.turn() && !isWiFiEnabled) {
     lastUpdate = millis();
     selectedTaskIndex += encoder.dir();
-    selectedTaskIndex = constrain(selectedTaskIndex, 0, tasks.size() - 1);
+    if (selectedTaskIndex <= lowerBoundTaskIndex - 4) lowerBoundTaskIndex--;
+    selectedTaskIndex = constrain(selectedTaskIndex, 0, tasks.size() - 1);    
+    lowerBoundTaskIndex = constrain(lowerBoundTaskIndex, 3, tasks.size() - 1);
+    if (selectedTaskIndex > lowerBoundTaskIndex) lowerBoundTaskIndex++;
     drawTodos();
   }
   if (encoder.hold()) {
@@ -68,72 +71,6 @@ void loop() {
     esp_deep_sleep_start();
   }
 }
-/*
-void toDoList() {
-  if (btnUp.click()) selectedTaskIndex--;
-  else if (btnDown.click()) selectedTaskIndex++;
-
-  if (btnMulti.click()) {
-    tasks[selectedTaskIndex]["completed"] = !tasks[selectedTaskIndex]["completed"];
-    saveTasks();
-  }
-
-  if (selectedTaskIndex < lowerBoundTaskIndex - 3) lowerBoundTaskIndex--;
-  selectedTaskIndex = constrain(selectedTaskIndex, 0, tasks.size() - 1);
-  if (selectedTaskIndex > lowerBoundTaskIndex) lowerBoundTaskIndex++;
-
-  showToDoList();
-}
-
-void showToDoList() {
-  bool showTitle = lowerBoundTaskIndex < 3;
-
-  display.clearDisplay();
-
-  display.drawRect(0, 0, 128, 64, 1);
-
-  display.setTextColor(1);
-  display.setTextWrap(false);
-  display.setFont(&Org_01);
-
-  if (showTitle) {
-    display.setTextSize(2);
-    display.setCursor(11, 13);
-    display.print("To Do List");
-  }
-
-  display.setTextSize(1);
-
-  int startIndex = showTitle ? lowerBoundTaskIndex - 2 : lowerBoundTaskIndex - 3;
-
-  for (int i = startIndex; i <= lowerBoundTaskIndex; i++) {
-    JsonVariant task = tasks[i];
-    int offset = showTitle ? (i + 1 - startIndex) * TO_DO_OFFSET : (i - startIndex) * TO_DO_OFFSET;
-
-    if (i == selectedTaskIndex) {
-      display.fillRect(4, 4 + offset, 120, 11, 1);
-      display.setTextColor(0);
-      display.setCursor(14, 11 + offset);
-      display.print(task["text"].as<String>());
-      if (task["completed"]) {
-        display.drawBitmap(6, 7 + offset, check_bits, 5, 5, 0);
-      }
-      display.drawLine(12, 6 + offset, 12, 12 + offset, 0);
-    } else {
-      display.drawRect(4, 4 + offset, 120, 11, 1);
-      display.setTextColor(1);
-      display.setCursor(14, 11 + offset);
-      display.print(task["text"].as<String>());
-      if (task["completed"]) {
-        display.drawBitmap(6, 7 + offset, check_bits, 5, 5, 1);
-      }
-      display.drawLine(12, 6 + offset, 12, 12 + offset, 1);
-    }
-  }
-
-  display.display();
-}
-*/
 
 void drawTodos() {
   u8g2.clearBuffer();
@@ -146,11 +83,15 @@ void drawTodos() {
 
   int baseY = 12;
 
-  u8g2.drawXBMP(2, baseY + 13 * selectedTaskIndex + 3, 3, 5, arrow_right);
-  u8g2.drawXBMP(123, baseY + 13 * selectedTaskIndex + 3, 3, 5, arrow_left);
-
-  for (JsonVariant task : tasks) {
+  for (int i = lowerBoundTaskIndex - 3; i <= lowerBoundTaskIndex; i++) {
+    JsonVariant task = tasks[i];
     drawTodoTile(task["text"].as<String>(), task["completed"], baseY);
+
+    if (i == selectedTaskIndex) {
+      u8g2.drawXBMP(2, baseY + 3, 3, 5, arrow_right);
+      u8g2.drawXBMP(123, baseY + 3, 3, 5, arrow_left);
+    }
+    
     baseY += 13;
   }
 
@@ -259,8 +200,10 @@ void changeServerState() {
 
     server.end();
     WiFi.disconnect(true);
-    loadTasks();    
+    loadTasks();
 
     delay(2000);
+
+    drawTodos();
   }
 }
