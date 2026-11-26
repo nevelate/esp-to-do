@@ -192,7 +192,7 @@ void changeServerState() {
 
     configureServer();
     server.begin();
-    delay(3000);
+    delay(2000);
   } else {
     u8g2.drawXBMP(55, 7, 19, 16, image_wifi_not_connected_bits);
     u8g2.drawStr(42, 36, "Wi-Fi is off");
@@ -203,7 +203,7 @@ void changeServerState() {
     loadTasks();
 
     delay(2000);
-
+    lastUpdate = millis();
     drawTodos();
   }
 }
