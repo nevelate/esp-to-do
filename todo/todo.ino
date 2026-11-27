@@ -57,7 +57,7 @@ void loop() {
     lastUpdate = millis();
     selectedTaskIndex += encoder.dir();
     if (selectedTaskIndex <= lowerBoundTaskIndex - 4) lowerBoundTaskIndex--;
-    selectedTaskIndex = constrain(selectedTaskIndex, 0, tasks.size() - 1);    
+    selectedTaskIndex = constrain(selectedTaskIndex, 0, tasks.size() - 1);
     lowerBoundTaskIndex = constrain(lowerBoundTaskIndex, 3, tasks.size() - 1);
     if (selectedTaskIndex > lowerBoundTaskIndex) lowerBoundTaskIndex++;
     drawTodos();
@@ -91,7 +91,7 @@ void drawTodos() {
       u8g2.drawXBMP(2, baseY + 3, 3, 5, arrow_right);
       u8g2.drawXBMP(123, baseY + 3, 3, 5, arrow_left);
     }
-    
+
     baseY += 13;
   }
 
@@ -180,10 +180,29 @@ void changeServerState() {
   if (WiFi.status() != WL_CONNECTED) {
     WiFi.begin(ssid, password);
 
-    while (WiFi.status() != WL_CONNECTED) {
-      delay(500);
+    int retry_count = 0;
+
+    u8g2.drawStr(38, 36, "connecting...");
+    u8g2.sendBuffer();
+
+    while (WiFi.status() != WL_CONNECTED && retry_count < 10) {
+      retry_count++;
+      delay(2000);
     }
 
+    if (retry_count >= 10 && WiFi.status() != WL_CONNECTED) {
+      u8g2.clearBuffer();
+      u8g2.drawStr(29, 36, "Connection failed");
+      u8g2.sendBuffer();
+
+      isWiFiEnabled = !isWiFiEnabled;
+      lastUpdate = millis();
+      delay(1000);
+      drawTodos();
+      return;
+    }
+
+    u8g2.clearBuffer();
     u8g2.drawXBMP(55, 7, 19, 16, image_wifi_bits);
     u8g2.drawStr(42, 36, "Wi-Fi is on");
     u8g2.setCursor(37, 51);
